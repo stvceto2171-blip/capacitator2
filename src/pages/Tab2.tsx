@@ -1,12 +1,13 @@
-// CHANGE: Add the following import
 import { camera } from 'ionicons/icons';
-// CHANGE: Update the following import
 import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonFab, IonFabButton, IonIcon } from '@ionic/react';
-// CHANGE: Remove or comment out `ExploreContainer`
-// import ExploreContainer from '../components/ExploreContainer';
+// CHANGE: Add `usePhotoGallery` import
+import { usePhotoGallery } from '../hooks/usePhotoGallery';
 import './Tab2.css';
 
 const Tab2: React.FC = () => {
+  // CHANGE: Destructure `addNewToGallery()` from `usePhotoGallery()`
+  const { addNewToGallery } = usePhotoGallery();
+
   return (
     <IonPage>
       <IonHeader>
@@ -21,15 +22,12 @@ const Tab2: React.FC = () => {
           </IonToolbar>
         </IonHeader>
 
-        {/* CHANGE: Add the floating action button */}
         <IonFab vertical="bottom" horizontal="center" slot="fixed">
-          <IonFabButton>
+          {/* CHANGE: Add a click event listener to the floating action button */}
+          <IonFabButton onClick={() => addNewToGallery()}>
             <IonIcon icon={camera}></IonIcon>
           </IonFabButton>
         </IonFab>
-
-        {/* CHANGE: Remove or comment out `ExploreContainer` */}
-        {/* <ExploreContainer name="Tab 2 page" /> */}
       </IonContent>
     </IonPage>
   );
