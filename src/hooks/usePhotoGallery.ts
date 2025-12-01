@@ -1,93 +1,111 @@
 import { useState, useEffect } from 'react';
-import { Camera, CameraResultType, CameraSource, Photo } from '@capacitor/camera';
+import { Camera, CameraResultType, CameraSource } from '@capacitor/camera';
+import type { Photo } from '@capacitor/camera';
 import { Filesystem, Directory } from '@capacitor/filesystem';
 import { Preferences } from '@capacitor/preferences';
-
-export interface UserPhoto {
-  filepath: string;
-  webviewPath: string;
-}
-
-const PHOTO_STORAGE = 'photos';
+import { isPlatform } from '@ionic/react';
+import { Capacitor } from '@capacitor/core';
 
 export function usePhotoGallery() {
   const [photos, setPhotos] = useState<UserPhoto[]>([]);
 
-  // Load saved photos on app start
+  const PHOTO_STORAGE = 'photos';
+
   useEffect(() => {
     const loadSaved = async () => {
-      const { value } = await Preferences.get({ key: PHOTO_STORAGE });
-      const photosInPreferences = value ? JSON.parse(value) : [];
+      const { value: photoList } = await Preferences.get({ key: PHOTO_STORAGE });
+      const photosInPreferences = (photoList ? JSON.parse(photoList) : []) as UserPhoto[];
 
-      const photosWithBase64 = await Promise.all(
-        photosInPreferences.map(async (photo: UserPhoto) => {
-          const file = await Filesystem.readFile({
+      // If running on the web...
+      if (!isPlatform('hybrid')) {
+        for (const photo of photosInPreferences) {
+          const readFile = await Filesystem.readFile({
             path: photo.filepath,
             directory: Directory.Data,
           });
+          photo.webviewPath = `data:image/jpeg;base64,${readFile.data}`;
+        }
+      }
 
-          return {
-            filepath: photo.filepath,
-            webviewPath: `data:image/jpeg;base64,${file.data}`,
-          };
-        })
-      );
-
-      setPhotos(photosWithBase64);
+      setPhotos(photosInPreferences);
     };
 
     loadSaved();
   }, []);
 
-  // Convert a photo to base64 for saving
-  const convertBlobToBase64 = (blob: Blob) =>
-    new Promise<string>((resolve, reject) => {
-      const reader = new FileReader();
-      reader.onerror = reject;
-      reader.onload = () => resolve(reader.result as string);
-      reader.readAsDataURL(blob);
-    });
-
-  // Save photo to filesystem and return object for gallery
-  const savePicture = async (photo: Photo, fileName: string): Promise<UserPhoto> => {
-    const response = await fetch(photo.webPath!);
-    const blob = await response.blob();
-    const base64Data = await convertBlobToBase64(blob);
-
-    await Filesystem.writeFile({
-      path: fileName,
-      data: base64Data.split(',')[1], // strip "data:image/jpeg;base64," before saving
-      directory: Directory.Data,
-    });
-
-    return {
-      filepath: fileName,
-      webviewPath: `data:image/jpeg;base64,${base64Data.split(',')[1]}`,
-    };
-  };
-
-  // Take a new photo and update gallery
   const addNewToGallery = async () => {
+    // Take a photo
     const capturedPhoto = await Camera.getPhoto({
       resultType: CameraResultType.Uri,
       source: CameraSource.Camera,
       quality: 100,
     });
 
-    const fileName = `${new Date().getTime()}.jpeg`;
-    const savedFileImage = await savePicture(capturedPhoto, fileName);
+    const fileName = Date.now() + '.jpeg';
+    // Save the picture and add it to photo collection
+    const savedImageFile = await savePicture(capturedPhoto, fileName);
 
-    const newPhotos = [savedFileImage, ...photos];
+    const newPhotos = [savedImageFile, ...photos];
     setPhotos(newPhotos);
 
-    await Preferences.set({
-      key: PHOTO_STORAGE,
-      value: JSON.stringify(newPhotos),
+    Preferences.set({ key: PHOTO_STORAGE, value: JSON.stringify(newPhotos) });
+  };
+
+  const savePicture = async (photo: Photo, fileName: string): Promise<UserPhoto> => {
+    let base64Data: string | Blob;
+    // "hybrid" will detect mobile - iOS or Android
+    if (isPlatform('hybrid')) {
+      const readFile = await Filesystem.readFile({
+        path: photo.path!,
+      });
+      base64Data = readFile.data;
+    } else {
+      // Fetch the photo, read as a blob, then convert to base64 format
+      const response = await fetch(photo.webPath!);
+      const blob = await response.blob();
+      base64Data = (await convertBlobToBase64(blob)) as string;
+    }
+
+    const savedFile = await Filesystem.writeFile({
+      path: fileName,
+      data: base64Data,
+      directory: Directory.Data,
+    });
+
+    if (isPlatform('hybrid')) {
+      // Display the new image by rewriting the 'file://' path to HTTP
+      return {
+        filepath: savedFile.uri,
+        webviewPath: Capacitor.convertFileSrc(savedFile.uri),
+      };
+    } else {
+      // Use webPath to display the new image instead of base64 since it's
+      // already loaded into memory
+      return {
+        filepath: fileName,
+        webviewPath: photo.webPath,
+      };
+    }
+  };
+
+  const convertBlobToBase64 = (blob: Blob) => {
+    return new Promise((resolve, reject) => {
+      const reader = new FileReader();
+      reader.onerror = reject;
+      reader.onload = () => {
+        resolve(reader.result);
+      };
+      reader.readAsDataURL(blob);
     });
   };
 
   return {
-    photos,
     addNewToGallery,
+    photos,
   };
+}
+
+export interface UserPhoto {
+  filepath: string;
+  webviewPath?: string;
 }
