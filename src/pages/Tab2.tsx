@@ -1,5 +1,4 @@
 import { camera } from 'ionicons/icons';
-// CHANGE: Update import
 import {
   IonContent,
   IonHeader,
@@ -14,10 +13,12 @@ import {
   IonCol,
   IonImg,
 } from '@ionic/react';
+
 import { usePhotoGallery } from '../hooks/usePhotoGallery';
+import './Tab2.css';
 
 const Tab2: React.FC = () => {
-  // CHANGE: Add `photos` array to destructure from `usePhotoGallery()`
+
   const { photos, addNewToGallery } = usePhotoGallery();
 
   return (
@@ -27,6 +28,7 @@ const Tab2: React.FC = () => {
           <IonTitle>Photo Gallery</IonTitle>
         </IonToolbar>
       </IonHeader>
+
       <IonContent fullscreen>
         <IonHeader collapse="condense">
           <IonToolbar>
@@ -34,10 +36,9 @@ const Tab2: React.FC = () => {
           </IonToolbar>
         </IonHeader>
 
-        {/* CHANGE: Add a grid component to display the photos */}
+        {/* Gallery Grid */}
         <IonGrid>
           <IonRow>
-            {/* CHANGE: Create a new column and image component for each photo */}
             {photos.map((photo) => (
               <IonCol size="6" key={photo.filepath}>
                 <IonImg src={photo.webviewPath} />
@@ -46,9 +47,10 @@ const Tab2: React.FC = () => {
           </IonRow>
         </IonGrid>
 
+        {/* Camera Button */}
         <IonFab vertical="bottom" horizontal="center" slot="fixed">
           <IonFabButton onClick={() => addNewToGallery()}>
-            <IonIcon icon={camera}></IonIcon>
+            <IonIcon icon={camera} />
           </IonFabButton>
         </IonFab>
       </IonContent>
