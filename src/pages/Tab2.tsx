@@ -1,12 +1,24 @@
 import { camera } from 'ionicons/icons';
-import { IonContent, IonHeader, IonPage, IonTitle, IonToolbar, IonFab, IonFabButton, IonIcon } from '@ionic/react';
-// CHANGE: Add `usePhotoGallery` import
+// CHANGE: Update import
+import {
+  IonContent,
+  IonHeader,
+  IonPage,
+  IonTitle,
+  IonToolbar,
+  IonFab,
+  IonFabButton,
+  IonIcon,
+  IonGrid,
+  IonRow,
+  IonCol,
+  IonImg,
+} from '@ionic/react';
 import { usePhotoGallery } from '../hooks/usePhotoGallery';
-import './Tab2.css';
 
 const Tab2: React.FC = () => {
-  // CHANGE: Destructure `addNewToGallery()` from `usePhotoGallery()`
-  const { addNewToGallery } = usePhotoGallery();
+  // CHANGE: Add `photos` array to destructure from `usePhotoGallery()`
+  const { photos, addNewToGallery } = usePhotoGallery();
 
   return (
     <IonPage>
@@ -22,8 +34,19 @@ const Tab2: React.FC = () => {
           </IonToolbar>
         </IonHeader>
 
+        {/* CHANGE: Add a grid component to display the photos */}
+        <IonGrid>
+          <IonRow>
+            {/* CHANGE: Create a new column and image component for each photo */}
+            {photos.map((photo) => (
+              <IonCol size="6" key={photo.filepath}>
+                <IonImg src={photo.webviewPath} />
+              </IonCol>
+            ))}
+          </IonRow>
+        </IonGrid>
+
         <IonFab vertical="bottom" horizontal="center" slot="fixed">
-          {/* CHANGE: Add a click event listener to the floating action button */}
           <IonFabButton onClick={() => addNewToGallery()}>
             <IonIcon icon={camera}></IonIcon>
           </IonFabButton>
